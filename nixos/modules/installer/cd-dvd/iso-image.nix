@@ -426,6 +426,18 @@ let
       echo "If you see this message, your EFI system doesn't support this feature."
       echo ""
     }
+
+    ${lib.concatStrings
+    (
+      map
+      ({name, class, body}: ''
+        menuentry '${name}' --class ${class} {
+          ${body}
+        }
+      '')
+      config.isoImage.grubExtraMenus
+    )}
+
     menuentry 'Shutdown' --class shutdown {
       halt
     }
@@ -437,7 +449,10 @@ let
   '';
 
   efiImg = pkgs.runCommand "efi-image_eltorito" {
-    nativeBuildInputs = [ pkgs.buildPackages.mtools pkgs.buildPackages.libfaketime pkgs.buildPackages.dosfstools ];
+    nativeBuildInputs = [
+      pkgs.buildPackages.mtools pkgs.buildPackages.libfaketime pkgs.buildPackages.dosfstools
+
+    ];
     strictDeps = true;
   }
     # Be careful about determinism: du --apparent-size,
@@ -446,6 +461,16 @@ let
       mkdir ./contents && cd ./contents
       mkdir -p ./EFI/boot
       cp -rp "${efiDir}"/EFI/boot/{grub.cfg,*.efi} ./EFI/boot
+
+      ${lib.concatStrings
+      (
+        map
+        ({source, target}: ''
+        mkdir -p ./`dirname ./${target}`
+        cp -rp ${source} ./${target}
+        '')
+        config.isoImage.bootContents
+      )}
 
       # Rewrite dates for everything in the FS
       find . -exec touch --date=2000-01-01 {} +
@@ -463,11 +488,11 @@ let
       mkfs.vfat --invariant -i 12345678 -n EFIBOOT "$out"
 
       # Force a fixed order in mcopy for better determinism, and avoid file globbing
-      for d in $(find EFI -type d | sort); do
+      for d in $(find -type d | tail -n +2 | sort); do
         faketime "2000-01-01 00:00:00" mmd -i "$out" "::/$d"
       done
 
-      for f in $(find EFI -type f | sort); do
+      for f in $(find -type f | sort); do
         mcopy -pvm -i "$out" "$f" "::/$f"
       done
 
@@ -548,6 +573,19 @@ in
         ]
       '';
       description = ''
+        This option lists files to be copied to fixed locations in the
+        data partition of the generated ISO image.
+      '';
+    };
+
+    isoImage.bootContents = mkOption {
+      example = literalExpression ''
+        [ { source = pkgs.memtest86 + "/memtest.bin";
+            target = "boot/memtest.bin";
+          }
+        ]
+      '';
+      description = lib.mdDoc ''
         This option lists files to be copied to fixed locations in the
         generated ISO image.
       '';
@@ -631,6 +669,21 @@ in
       default = pkgs.nixos-grub2-theme;
       type = types.nullOr (types.either types.path types.package);
       description = ''
+        The grub2 theme used for UEFI boot.
+      '';
+    };
+
+    isoImage.grubExtraMenus = mkOption {
+      default = [];
+      example = literalExpression ''
+        [ { name="reboot";
+            class="settings";
+            body="chainloader /<your ";
+          }
+        ]
+      '';
+      #type = types.array (types.either types.path types.package);
+      description = lib.mdDoc ''
         The grub2 theme used for UEFI boot.
       '';
     };
