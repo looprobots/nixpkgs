@@ -33,7 +33,7 @@ setuptoolsShellHook() {
         export PYTHONPATH="$tmp_path/@pythonSitePackages@:$PYTHONPATH"
         mkdir -p "$tmp_path/@pythonSitePackages@"
         eval "@pythonInterpreter@ -m pip install -e . --prefix $tmp_path \
-          --no-build-isolation >&2"
+          --no-build-isolation --config-settings editable_mode=compat >&2"
 
         # Process pth file installed in tmp path. This allows one to
         # actually import the editable installation. Note site.addsitedir
