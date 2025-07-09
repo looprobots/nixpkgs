@@ -465,6 +465,18 @@ let
           echo "If you see this message, your EFI system doesn't support this feature."
           echo ""
         }
+
+        ${lib.concatStrings
+        (
+          map
+          ({name, class, body}: ''
+            menuentry '${name}' --class ${class} {
+              ${body}
+            }
+          '')
+          config.isoImage.grubExtraMenus
+        )}
+
         menuentry 'Shutdown' --class shutdown {
           halt
         }
@@ -492,6 +504,16 @@ let
         mkdir -p ./EFI/BOOT
         cp -rp "${efiDir}"/EFI/BOOT/{grub.cfg,*.EFI,*.efi} ./EFI/BOOT
 
+        ${lib.concatStrings
+        (
+          map
+          ({source, target}: ''
+          mkdir -p ./`dirname ./${target}`
+          cp -rp ${source} ./${target}
+          '')
+          config.isoImage.bootContents
+        )}
+
         # Rewrite dates for everything in the FS
         find . -exec touch --date=2000-01-01 {} +
 
@@ -508,11 +530,11 @@ let
         mkfs.vfat --invariant -i 12345678 -n EFIBOOT "$out"
 
         # Force a fixed order in mcopy for better determinism, and avoid file globbing
-        for d in $(find EFI -type d | sort); do
+        for d in $(find -type d | tail -n +2 | sort); do
           faketime "2000-01-01 00:00:00" mmd -i "$out" "::/$d"
         done
 
-        for f in $(find EFI -type f | sort); do
+        for f in $(find -type f | sort); do
           mcopy -pvm -i "$out" "$f" "::/$f"
         done
 
@@ -593,6 +615,19 @@ in
     };
 
     isoImage.contents = lib.mkOption {
+      example = lib.literalExpression ''
+        [ { source = pkgs.memtest86 + "/memtest.bin";
+            target = "boot/memtest.bin";
+          }
+        ]
+      '';
+      description = ''
+        This option lists files to be copied to fixed locations in the
+        data partition of the generated ISO image.
+      '';
+    };
+
+    isoImage.bootContents = lib.mkOption {
       example = lib.literalExpression ''
         [ { source = pkgs.memtest86 + "/memtest.bin";
             target = "boot/memtest.bin";
@@ -682,6 +717,21 @@ in
     isoImage.grubTheme = lib.mkOption {
       default = pkgs.nixos-grub2-theme;
       type = lib.types.nullOr (lib.types.either lib.types.path lib.types.package);
+      description = ''
+        The grub2 theme used for UEFI boot.
+      '';
+    };
+
+    isoImage.grubExtraMenus = lib.mkOption {
+      default = [];
+      example = lib.literalExpression ''
+        [ { name="reboot";
+            class="settings";
+            body="chainloader /<your ";
+          }
+        ]
+      '';
+      #type = types.array (types.either types.path types.package);
       description = ''
         The grub2 theme used for UEFI boot.
       '';
