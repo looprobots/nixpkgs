@@ -129,7 +129,6 @@ stdenv.mkDerivation (finalAttrs: {
     (replaceVars ./fix-paths.patch {
       inherit
         iputils
-        openconnect
         ethtool
         gnused
         ;

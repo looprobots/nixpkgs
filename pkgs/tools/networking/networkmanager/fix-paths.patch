@@ -64,7 +64,7 @@ index cbe76f5f1c..8515f94994 100644
 -                                         error);
 -    if (!path)
 -        return FALSE;
-+    path = "@openconnect@/bin/openconnect";
++    return false;
  
      oc_argv[oc_argc++] = path;
      oc_argv[oc_argc++] = "--authenticate";

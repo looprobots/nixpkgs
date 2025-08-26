@@ -14,7 +14,7 @@
   which,
   fftw,
   pipewire,
-  withPipewireLib ? true,
+  withPipewireLib ? false,
   symlinkJoin,
 }:
 

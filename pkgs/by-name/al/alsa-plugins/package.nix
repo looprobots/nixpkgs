@@ -24,7 +24,7 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     alsa-lib
-    ffmpeg
+    # ffmpeg
     libjack2
     libogg
     libpulseaudio

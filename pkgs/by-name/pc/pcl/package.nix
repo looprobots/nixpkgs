@@ -49,7 +49,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     cmake
-    libsForQt5.wrapQtAppsHook
+    # libsForQt5.wrapQtAppsHook
     pkg-config
   ]
   ++ lib.optionals cudaSupport [ cudaPackages.cuda_nvcc ];
@@ -58,7 +58,7 @@ stdenv.mkDerivation (finalAttrs: {
     eigen
     libXt
     libpcap
-    libsForQt5.qtbase
+    # libsForQt5.qtbase
     libusb1
     llvmPackages.openmp
   ];
@@ -69,12 +69,15 @@ stdenv.mkDerivation (finalAttrs: {
     libpng
     libtiff
     qhull
-    vtk
+    # vtk
   ];
 
-  cmakeFlags = lib.optionals cudaSupport [
-    (lib.cmakeBool "WITH_CUDA" true)
-  ];
+  cmakeFlags =
+    [
+      (lib.cmakeBool "WITH_OPENGL" false)
+    ] ++ lib.optionals cudaSupport [
+      (lib.cmakeBool "WITH_CUDA" false)
+    ];
 
   passthru.updateScript = gitUpdater {
     rev-prefix = "pcl-";
